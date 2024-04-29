@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.sample_app.sample-app-mergeDebugResources-56:/values-v18/values-v18.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\kfir1\\.gradle\\caches\\transforms-4\\b28de4e4c93358eb9cda5bdf890ec4ad\\transformed\\appcompat-1.6.1\\res\\values-v18\\values-v18.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "48",
+                        "endOffsets": "99"
+                    }
+                }
+            ]
+        }
+    ]
+}
