@@ -24,5 +24,6 @@ SAVR is a Kotlin library that simplifies audio recording with automatic silence 
 ## Sample App
 
 Run the sample-app to see a demonstration of SAVR in action.
+- Simply press "Start Recording", say anything and after `silenceDurationMs` of silence/noise it will be replayed to you. ("Stop recording" should not be used it is just there for you to manually stop recording if needed).
 
 ![SAVR Sample App](https://github.com/kfirtaizi/kotlin-silence-aware-vad-recorder/assets/44837286/38993226-366a-4788-b2d5-3403f0c0e891)
