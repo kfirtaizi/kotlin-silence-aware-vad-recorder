@@ -1,6 +1,6 @@
 # SAVR: Silence-Aware Voice Recorder
 
-SAVR is a Kotlin library that simplifies audio recording with automatic silence & noise detection and recording termination.
+SAVR is a Kotlin library that simplifies audio recording with automatic silence & noise detection and recording termination, using [VAD](https://github.com/gkonovalov/android-vad) for speech recognision.
 
 ## Features
 
