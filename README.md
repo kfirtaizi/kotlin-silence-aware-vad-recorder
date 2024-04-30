@@ -6,7 +6,7 @@ SAVR is a Kotlin library that simplifies audio recording with automatic silence 
 
 - Record audio and save as WAV format to local file `recording_${System.currentTimeMillis()}.wav`
 - Once speech is detected, SAVR automatically stops recording after `silenceDurationMs` of non-speech (noise/silence) input
-    - Recording resumes and the timer resets every time speech is detected
+    - Timer resets every time speech is detected
     - Default value is 5000ms (5 seconds)
 - Recording stops entirely after `maxRecordingDurationMs`
     - Default value is 60000ms (60 seconds)
