@@ -2,6 +2,7 @@ package com.example.savr_library
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Environment
@@ -12,9 +13,13 @@ import com.konovalov.vad.silero.config.Mode
 import com.konovalov.vad.silero.config.SampleRate
 import java.io.File
 import java.io.IOException
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 class AudioRecordingManager(private val context: Context,
                             private val listener: RecordingResultListener,
+                            private val recordSpeechOnly: Boolean = false,
                             vadMinimumSilenceDurationMs: Int = 300,
                             vadMinimumSpeechDurationMs: Int = 30,
                             vadMode: Int = 1,
@@ -35,6 +40,7 @@ class AudioRecordingManager(private val context: Context,
     private var silenceStartTime: Long = 0
     private var hasSpoken: Boolean = false
     private var recordingStartTime: Long = 0
+    private val speechData = mutableListOf<Short>()
 
     interface RecordingResultListener {
         fun onRecordingComplete(audioFilePath: String)
@@ -57,8 +63,6 @@ class AudioRecordingManager(private val context: Context,
             if (audioDirectory != null) {
                 val fileName = "recording_${System.currentTimeMillis()}.wav"
                 audioFile = File(audioDirectory, fileName)
-
-                recorder.setOutputFile(audioFile)
 
                 isRecording = true
                 hasSpoken = false
@@ -107,6 +111,7 @@ class AudioRecordingManager(private val context: Context,
         if (isSpeech) {
             hasSpoken = true
             silenceStartTime = 0
+            speechData.addAll(audioData.toList())
         } else {
             if (hasSpoken) {
                 if (silenceStartTime == 0L) {
@@ -116,6 +121,10 @@ class AudioRecordingManager(private val context: Context,
                     if (elapsedTime >= silenceDurationMs) {
                         completeRecording()
                     }
+                }
+
+                if (!recordSpeechOnly) {
+                    speechData.addAll(audioData.toList())
                 }
             }
         }
@@ -128,7 +137,66 @@ class AudioRecordingManager(private val context: Context,
     private fun completeRecording() {
         playBeep()
         stopRecording()
+
+        // Write speech data to the output file
+        val outputStream = RandomAccessFile(audioFile, "rw")
+        try {
+            writeWavHeader(outputStream, AudioFormat.CHANNEL_IN_MONO, vad.sampleRate.value)
+            outputStream.write(shortArrayToByteArray(speechData.toShortArray()))
+            updateWavHeader(outputStream)
+        } finally {
+            outputStream.close()
+        }
+
         listener.onRecordingComplete(audioFile.absolutePath)
+    }
+
+    private fun writeWavHeader(file: RandomAccessFile?, channelConfig: Int, sampleRate: Int) {
+        val byteRate = sampleRate * 2
+        val blockAlign = 2
+        val bitsPerSample = 16
+        val dataSize = 0 // Placeholder, update after recording
+        val subChunk2Size = dataSize * channelConfig * bitsPerSample / 8
+        val chunkSize = 36 + subChunk2Size
+
+        val header = ByteBuffer.allocate(44)
+        header.order(ByteOrder.LITTLE_ENDIAN)
+
+        header.put("RIFF".toByteArray(Charsets.US_ASCII))
+        header.putInt(chunkSize)
+        header.put("WAVE".toByteArray(Charsets.US_ASCII))
+        header.put("fmt ".toByteArray(Charsets.US_ASCII))
+        header.putInt(16) // PCM chunk size
+        header.putShort(1) // Audio format (PCM)
+        header.putShort(1) // Number of channels
+        header.putInt(sampleRate)
+        header.putInt(byteRate)
+        header.putShort(blockAlign.toShort())
+        header.putShort(bitsPerSample.toShort())
+        header.put("data".toByteArray(Charsets.US_ASCII))
+        header.putInt(subChunk2Size)
+
+        file?.write(header.array())
+    }
+
+    private fun updateWavHeader(file: RandomAccessFile?) {
+        file?.let {
+            it.seek(4)  // Move to file size position
+            val fileSize = it.length()
+            it.writeInt((fileSize - 8).toInt())  // Update file size
+
+            it.seek(40)  // Move to data chunk size position
+            it.writeInt((fileSize - 44).toInt())  // Update data chunk size
+        }
+    }
+
+    private fun shortArrayToByteArray(shortArray: ShortArray): ByteArray {
+        val byteBuffer = ByteBuffer.allocate(shortArray.size * 2)
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        for (sample in shortArray) {
+            byteBuffer.putShort(sample)
+        }
+        return byteBuffer.array()
     }
 
     fun onDestroy() {
