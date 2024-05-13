@@ -66,6 +66,7 @@ class AudioRecordingManager(private val context: Context,
 
                 isRecording = true
                 hasSpoken = false
+                speechData.clear()
 
                 playBeep()
                 startSilenceDetection()
